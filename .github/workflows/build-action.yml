@@ -6,19 +6,13 @@ on:
       - main
 
     paths:
-      - "CMakeLists.txt"
-      - '**.c'
-      - '**.rs'
-      - '**.h'
-      - 'sdkconfig'
+      - "src/fireware-code/csi-recv-end/**"
+
 
   pull_request:
     paths:
-      - "CMakeLists.txt"
-      - '**.c'
-      - '**.rs'
-      - '**.h'
-      - 'sdkconfig'
+      - "src/fireware-code/csi-recv-end/**"
+
 jobs:
   build:
     runs-on: ubuntu-latest
