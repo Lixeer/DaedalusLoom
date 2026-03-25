@@ -282,7 +282,7 @@ void temp_callback(void *ctx, wifi_csi_info_t *info) {
 #endif  
   g_csi_package_count++;
   
-  ets_printf("index:%d data:[", g_csi_package_count);
+  ets_printf("index:%d len:%d data:[", g_csi_package_count, info->len);
   for (int i = 0; i < info->len; i++) {
       ets_printf("%d,", info->buf[i]);   //元数据
       //数据意义：除前面几个之外其他都是复数对(I,Q) 参考
