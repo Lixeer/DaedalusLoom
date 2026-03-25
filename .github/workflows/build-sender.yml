@@ -1,14 +1,11 @@
-name: Build Firmware
+name: Build Firmware esp32s3
 
 on:
-  workflow_dispatch:
-  push:
-    branches: [ main ]
-    paths:
-      - "src/fireware-code/**"
-  pull_request:
-    paths:
-      - "src/fireware-code/**"
+  workflow_run:
+    workflows: ["Format"]   
+    types:
+      - completed
+
 
 jobs:
   build:

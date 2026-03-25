@@ -1,14 +1,10 @@
-name: Build Firmware
+name: Build Firmware esp32c6
 
 on:
-  workflow_dispatch:
-  push:
-    branches: [ main ]
-    paths:
-      - "src/fireware-code/**"
-  pull_request:
-    paths:
-      - "src/fireware-code/**"
+  workflow_run:
+    workflows: ["Format"]   # 👈 等 fmt workflow
+    types:
+      - completed
 
 jobs:
   build:
@@ -21,11 +17,7 @@ jobs:
           - target: esp32c6
             project: src/firmware-code/csi-receiver
 
-          - target: esp32s3
-            project: src/firmware-code/csi-sender
-            
-          - target: esp32p4
-            project: src/firmware-code/motion-inference
+
 
     steps:
       - name: Checkout repo
