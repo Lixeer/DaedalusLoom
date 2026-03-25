@@ -11,6 +11,9 @@ on:
       - "src/firmware-code/**"
       - ".github/workflows/make-fmt.yml"
 
+permissions:
+  contents: write
+
 jobs:
   fmt:
     
