@@ -4,10 +4,12 @@ on:
   push:
     branches: [ main ]
     paths:
+      - ".github/workflows/make-fmt.yml"
       - "src/firmware-code/**"
   pull_request:
     paths:
       - "src/firmware-code/**"
+      - ".github/workflows/make-fmt.yml"
 
 jobs:
   fmt:
@@ -26,7 +28,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y clang-format
 
       - name: Run format
-        run: find src/fireware-code -regex '.*\.\(c\|h\|cpp\|hpp\)' -exec clang-format -i {} \;
+        run: find src/firmware-code -regex '.*\.\(c\|h\|cpp\|hpp\)' -exec clang-format -i {} \;
 
       - name: Commit changes if needed
         run: |
