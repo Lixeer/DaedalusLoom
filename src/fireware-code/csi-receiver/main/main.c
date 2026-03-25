@@ -290,7 +290,7 @@ void temp_callback(void *ctx, wifi_csi_info_t *info) {
       //https://chat.deepseek.com/share/k0vn79mavtjq9dn3rn
       //强烈补习信号与系统
   }
-  printf("]\n");  
+  printf("\b]\n");  
   
 }
 
