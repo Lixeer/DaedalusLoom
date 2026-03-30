@@ -1,9 +1,9 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_wifi.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 static const char *TAG = "wifi_connect_wrap";
 
 #define AP_SSID "Lixeer"
@@ -32,33 +32,34 @@ static void wifi_event_handler_AP(void *arg, esp_event_base_t event_base, int32_
     }
 }
 
-static void wifi_event_handler_STA(void *arg, esp_event_base_t event_base,int32_t event_id, void *event_data) {
+static void wifi_event_handler_STA(void *arg, esp_event_base_t event_base, int32_t event_id,
+                                   void *event_data)
+{
     // 处理WIFI事件
     printf("entry");
-    if (event_base == WIFI_EVENT) {
-        switch (event_id) {
-            case WIFI_EVENT_STA_START:
-                // 记录WIFI驱动就绪日志
-                ESP_LOGI(TAG, "WiFi驱动就绪");
-                break;
-            case WIFI_EVENT_STA_CONNECTED:
-                // 记录成功连接到热点日志
-                ESP_LOGI(TAG, "已连接到热点");
-                break;
-
+    if (event_base == WIFI_EVENT)
+    {
+        switch (event_id)
+        {
+        case WIFI_EVENT_STA_START:
+            // 记录WIFI驱动就绪日志
+            ESP_LOGI(TAG, "WiFi驱动就绪");
+            break;
+        case WIFI_EVENT_STA_CONNECTED:
+            // 记录成功连接到热点日志
+            ESP_LOGI(TAG, "已连接到热点");
+            break;
         }
-    // 处理IP事件
-    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+        // 处理IP事件
+    }
+    else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
+    {
         // 获取IP事件数据
-        ip_event_got_ip_t *event = (ip_event_got_ip_t*) event_data;
+        ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
         // 记录成功获取IP日志
         ESP_LOGI(TAG, "成功获取IP:" IPSTR, IP2STR(&event->ip_info.ip));
     }
 }
-
-
-
-
 
 void wifi_nonow_init()
 {
@@ -83,8 +84,10 @@ void wifi_nonow_init()
                                         NULL, &ip_event_handle);
     ESP_LOGI(TAG, "wifi_init_success");
     wifi_config_t ap_config = {
-        .ap = {.ssid = AP_SSID,
-               .password = AP_PASSWORD,
+        .ap =
+            {
+                .ssid = AP_SSID,
+                .password = AP_PASSWORD,
             },
     };
     esp_wifi_set_mode(WIFI_MODE_AP);
@@ -92,5 +95,3 @@ void wifi_nonow_init()
     ESP_LOGI(TAG, "wifi_AP_config");
     esp_wifi_start();
 }
-
-
