@@ -1,2 +1,2 @@
-idf_component_register(SRC_DIRS "."
-                       INCLUDE_DIRS ".")
+idf_component_register(SRC_DIRS "." "./selflib"
+                       INCLUDE_DIRS "." "./selflib")
