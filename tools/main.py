@@ -1,108 +1,109 @@
 import serial
 import numpy as np
+import matplotlib.pyplot as plt
+from collections import deque
 import re
 
 # =============================
 # 串口配置
 # =============================
 SERIAL_PORT = "COM3"
-BAUDRATE = 115200
+BAUD_RATE = 921600
 
 # =============================
-# 提取 {...} 数据
+# 参数
 # =============================
-pattern = re.compile(r"\{([^\}]*)\}")
+CSI_LEN = 256
+SUBCARRIERS = CSI_LEN // 2
+WINDOW_SIZE = 100  # 用于瀑布图
 
-def parse_csi_line(line):
+# =============================
+# 初始化
+# =============================
+ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+
+# 瀑布图缓存
+csi_buffer = deque(maxlen=WINDOW_SIZE)
+
+plt.ion()
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+
+# =============================
+# 解析函数
+# =============================
+def parse_csi(line):
     """
-    从一行日志中提取 CSI 数据数组
+    从串口文本中提取 CSI 数组
     """
-    match = pattern.search(line)
+    match = re.search(r"\[(.*?)\]", line)
     if not match:
         return None
 
-    raw = match.group(1)
+    data_str = match.group(1)
+    data = list(map(int, data_str.split(',')))
 
-    try:
-        data = [int(x.strip()) for x in raw.split(",") if x.strip() != ""]
-        return data
-    except:
+    if len(data) != CSI_LEN:
         return None
 
-
-def compute_amplitude(csi_raw):
-    """
-    I/Q → 幅度
-    """
-    if len(csi_raw) % 2 != 0:
-        return None
-
-    iq = np.array(csi_raw, dtype=np.float32)
-    I = iq[0::2]
-    Q = iq[1::2]
-
-    amplitude = np.sqrt(I**2 + Q**2)
-
-    return amplitude
-
-
-def remove_zero_padding(amplitude):
-    """
-    去掉前后全0区域（非常关键）
-    """
-    # 找非零区域
-    nonzero_idx = np.where(amplitude > 1e-6)[0]
-
-    if len(nonzero_idx) == 0:
-        return None
-
-    start = nonzero_idx[0]
-    end = nonzero_idx[-1]
-
-    return amplitude[start:end+1]
-
+    return data
 
 # =============================
 # 主循环
 # =============================
-def main():
-    ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=1)
+while True:
+    try:
+        line = ser.readline().decode(errors='ignore').strip()
 
-    print(f"Listening on {SERIAL_PORT}...")
+        if "CSI_DATA" not in line and "data:[" not in line:
+            continue
 
-    while True:
-        try:
-            line = ser.readline().decode(errors="ignore")
-            print("Raw line:", line.strip())
-            
-            if "data:" not in line:
-                continue
+        raw = parse_csi(line)
+        if raw is None:
+            continue
 
-            csi_raw = parse_csi_line(line)
-            if csi_raw is None:
-                continue
+        # =============================
+        # 转复数
+        # =============================
+        imag = np.array(raw[0::2])
+        real = np.array(raw[1::2])
+        csi = real + 1j * imag
 
-            amplitude = compute_amplitude(csi_raw)
-            if amplitude is None:
-                continue
+        # =============================
+        # 幅度 & 相位
+        # =============================
+        amplitude = np.abs(csi)
+        phase = np.angle(csi)
 
-            amplitude = remove_zero_padding(amplitude)
-            if amplitude is None:
-                continue
+        # 去掉全0区域（简单裁剪）
+        valid = amplitude > 0
+        amplitude = amplitude[valid]
 
-            # =============================
-            # 打印结果
-            # =============================
-            print("Amplitude (len={}):".format(len(amplitude)))
-            print(np.round(amplitude, 2))
-            print("-" * 60)
+        # =============================
+        # 更新瀑布图缓存
+        # =============================
+        if len(amplitude) > 10:
+            csi_buffer.append(amplitude)
 
-        except KeyboardInterrupt:
-            print("Exit.")
-            break
-        except Exception as e:
-            print("Error:", e)
+        # =============================
+        # 绘图
+        # =============================
+        ax1.clear()
+        ax1.set_title("CSI Amplitude (Subcarriers)")
+        ax1.plot(amplitude)
+        ax1.set_xlabel("Subcarrier")
+        ax1.set_ylabel("Amplitude")
 
+        ax2.clear()
+        ax2.set_title("CSI Waterfall (Time Series)")
+        if len(csi_buffer) > 10:
+            data_2d = np.array(csi_buffer)
+            ax2.imshow(data_2d, aspect='auto', origin='lower')
+            ax2.set_xlabel("Subcarrier")
+            ax2.set_ylabel("Time")
 
-if __name__ == "__main__":
-    main()
+        plt.pause(0.01)
+
+    except KeyboardInterrupt:
+        break
+
+ser.close()
