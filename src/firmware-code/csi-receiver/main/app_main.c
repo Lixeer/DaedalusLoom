@@ -26,7 +26,7 @@
 #include "esp_wifi.h"
 #include "rom/ets_sys.h"
 
-#include "wifi_connect_wrap.h"
+
 
 #define ENABLE_ESP_NOW 1
 #define IS_PRINT_RSSI 0
@@ -60,7 +60,7 @@
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
 #define ESP_IF_WIFI_STA ESP_MAC_WIFI_STA
 #endif
-
+#define PMK "pmk20051027"
 static const uint8_t CONFIG_CSI_SEND_MAC[] = {0x1a, 0x00, 0x00, 0x00, 0x00, 0x00};
 static const char *TAG = "csi_recv";
 static uint32_t g_csi_package_count = 0;
@@ -147,7 +147,7 @@ static void wifi_init()
 static void wifi_esp_now_init(esp_now_peer_info_t peer)
 {
     ESP_ERROR_CHECK(esp_now_init());
-    ESP_ERROR_CHECK(esp_now_set_pmk((uint8_t *)"pmk1234567890123"));
+    ESP_ERROR_CHECK(esp_now_set_pmk((uint8_t *)""));
     esp_now_rate_config_t rate_config = {.phymode = CONFIG_ESP_NOW_PHYMODE,
                                          .rate = CONFIG_ESP_NOW_RATE, //  WIFI_PHY_RATE_MCS0_LGI,
                                          .ersu = false,
@@ -321,7 +321,7 @@ static void wifi_csi_init()
         .ltf_merge_en = true,
         .channel_filter_en = true,
         .manu_scale = false,
-        .shift = false,
+        .shift = true,
     };
 #endif
     ESP_ERROR_CHECK(esp_wifi_set_csi_config(&csi_config));
