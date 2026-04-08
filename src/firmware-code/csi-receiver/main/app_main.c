@@ -26,8 +26,6 @@
 #include "esp_wifi.h"
 #include "rom/ets_sys.h"
 
-
-
 #define ENABLE_ESP_NOW 1
 #define IS_PRINT_RSSI 0
 #define IS_PRINT_CSI_INFO 1
