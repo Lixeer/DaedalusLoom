@@ -109,11 +109,11 @@ if __name__ == "__main__":
     print(f"训练集大小: {x_train.shape[0]}")  # 80%
     print(f"测试集大小: {x_test.shape[0]}")    # 20%
     train_loader = DataLoader(TensorDataset(x_train, y_train), batch_size=64, shuffle=True)
-    test_loader = DataLoader(TensorDataset(x_test, y_test), batch_size=200, shuffle=False)
+    test_loader = DataLoader(TensorDataset(x_test, y_test), batch_size=300, shuffle=False)
     model = SimpleMLP(num_classes=3).to(device)
     #model = CSIGestureCNN(num_classes=3).to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=1e-7)
+    optimizer = optim.Adam(model.parameters(), lr=1e-5)
 
     
     history = {
