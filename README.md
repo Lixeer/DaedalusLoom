@@ -4,10 +4,13 @@
 
 # DaedalusLoom  
  
-English | [简体中文](README_zh-cn.md)  
+
 
 <img src="https://img.shields.io/badge/Framework-ESP--IDFv5.5+-E7352C?style=flat-square&logo=espressif" alt="ESP-IDF">
 
 <img src="https://img.shields.io/badge/WIFI CSI  Support-esp32c5%2C%20esp32c6%2C%20esp32s3-blue" alt="Suppport">
 <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+
+---
+English | [简体中文](README_zh-cn.md)  
 </div>
