@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - target: esp32s3
+          - target: esp32c5
             project: src/firmware-code/csi-receiver
 
 
