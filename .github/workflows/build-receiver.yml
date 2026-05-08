@@ -1,14 +1,16 @@
 name: Build csi-receiver firmware
 
 on:
-  workflow_run:
-    workflows: ["Format"]   # 👈 等 fmt workflow
-    types:
-      - completed
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
     
     runs-on: ubuntu-latest
 
@@ -16,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - target: esp32s3
+          - target: esp32c5
             project: src/firmware-code/csi-receiver
 
 
