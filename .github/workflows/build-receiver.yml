@@ -1,14 +1,16 @@
 name: Build csi-receiver firmware
 
 on:
-  workflow_run:
-    workflows: ["Format"]   # 👈 等 fmt workflow
-    types:
-      - completed
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
     
     runs-on: ubuntu-latest
 
