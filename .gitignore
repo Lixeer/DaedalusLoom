@@ -26,6 +26,8 @@ build/
 *.a
 *.out
 *.exe # For any host-side utilities compiled on Windows
+src/firmware-code/motion-inference/build_cnn1d_sd/*
+
 
 # ESP-IDF specific build outputs
 *.bin
@@ -79,3 +81,4 @@ Desktop.ini
 *.suo       # Visual Studio Solution User Options
 *.sln.docstates # Visual Studio
 .cache/
+src/firmware-code/motion-inference/build_cnn1d_sd/esp-idf/esptool_py/app-flash_args.in
