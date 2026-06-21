@@ -13,11 +13,15 @@
 */
 // build test
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "nvs_flash.h"
+
+#include "driver/uart.h"
+#include "driver/gpio.h"
 
 #include "esp_csi_gain_ctrl.h"
 #include "esp_log.h"
@@ -60,6 +64,83 @@
 static const uint8_t CONFIG_CSI_SEND_MAC[] = {0x1a, 0x00, 0x00, 0x00, 0x00, 0x00};
 static const char *TAG = "csi_recv";
 static int g_csi_package_count = 0;
+
+#define EX_UART_NUM         UART_NUM_1
+#define UART_TXD_PIN        11
+#define UART_RXD_PIN        12
+#define UART_BAUD_RATE      921600
+#define CSI_TO_UART_ENABLED 1
+
+
+
+
+
+
+
+static void uart_init(void)
+{
+    const uart_config_t uart_config = {
+        .baud_rate = UART_BAUD_RATE,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+    
+    ESP_ERROR_CHECK(uart_driver_install(EX_UART_NUM, 1024, 0, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_param_config(EX_UART_NUM, &uart_config));
+    ESP_ERROR_CHECK(uart_set_pin(EX_UART_NUM, UART_TXD_PIN, UART_RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+}
+
+static void uart_send_csi_binary(uint32_t seq, int8_t *buf, uint16_t len, float compensate_gain)
+{
+    if (len > 1024) {
+        len = 1024;
+    }
+    
+    uint8_t header[10];
+    header[0] = 'C';
+    header[1] = 'S';
+    header[2] = 'I';
+    header[3] = '1';
+    
+    // seq (4字节，小端)
+    header[4] = (uint8_t)(seq & 0xFF);
+    header[5] = (uint8_t)((seq >> 8) & 0xFF);
+    header[6] = (uint8_t)((seq >> 16) & 0xFF);
+    header[7] = (uint8_t)((seq >> 24) & 0xFF);
+    
+    // len (2字节，小端)
+    header[8] = (uint8_t)(len & 0xFF);
+    header[9] = (uint8_t)((len >> 8) & 0xFF);
+    
+    int8_t payload[1024];
+    for (uint16_t i = 0; i < len; ++i) {
+        int val = (int)(compensate_gain * buf[i]);
+        if (val > 127) val = 127;
+        if (val < -128) val = -128;
+        payload[i] = (int8_t)val;
+    }
+    
+    // 校验和 (头10字节之和 + 载荷之和，低16位)
+    uint32_t sum = 0;
+    for (int i = 0; i < 10; ++i) {
+        sum += header[i];
+    }
+    for (uint16_t i = 0; i < len; ++i) {
+        sum += (uint8_t)payload[i];
+    }
+    
+    uint8_t checksum_bytes[2];
+    checksum_bytes[0] = (uint8_t)(sum & 0xFF);
+    checksum_bytes[1] = (uint8_t)((sum >> 8) & 0xFF);
+    
+    uart_write_bytes(EX_UART_NUM, (const char *)header, 10);
+    uart_write_bytes(EX_UART_NUM, (const char *)payload, len);
+    uart_write_bytes(EX_UART_NUM, (const char *)checksum_bytes, 2);
+}
+
 static void wifi_init()
 {
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -151,7 +232,7 @@ static void wifi_esp_now_init(esp_now_peer_info_t peer)
     ESP_ERROR_CHECK(esp_now_set_peer_rate_config(peer.peer_addr, &rate_config));
 }
 
-static void wifi_csi_rx_cb(void *ctx, wifi_csi_info_t *info)
+__attribute__((unused)) static void wifi_csi_rx_cb(void *ctx, wifi_csi_info_t *info)
 {
     if (!info || !info->buf)
     {
@@ -186,8 +267,7 @@ static void wifi_csi_rx_cb(void *ctx, wifi_csi_info_t *info)
 #endif
     }
     esp_csi_gain_ctrl_get_gain_compensation(&compensate_gain, agc_gain, fft_gain);
-    ESP_LOGI(TAG, "compensate_gain %f, agc_gain %d, fft_gain %d", compensate_gain, agc_gain,
-             fft_gain);
+    //ESP_LOGI(TAG, "compensate_gain %f, agc_gain %d, fft_gain %d", compensate_gain, agc_gain,fft_gain);
 #endif
 
     uint32_t rx_id = *(uint32_t *)(info->payload + 15);
@@ -220,6 +300,9 @@ static void wifi_csi_rx_cb(void *ctx, wifi_csi_info_t *info)
                rx_ctrl->rx_state);
 
 #endif
+
+#define SEND_TO_CONSOLE 0
+#if SEND_TO_CONSOLE == 1
 #if (CONFIG_IDF_TARGET_ESP32C5 || CONFIG_IDF_TARGET_ESP32C61) && CSI_FORCE_LLTF
     int16_t csi = ((int16_t)(((((uint16_t)info->buf[1]) << 8) | info->buf[0]) << 4) >> 4);
     ets_printf(",%d,%d,\"[%d", (info->len - 2) / 2, info->first_word_invalid,
@@ -230,20 +313,39 @@ static void wifi_csi_rx_cb(void *ctx, wifi_csi_info_t *info)
         ets_printf(",%d", (int16_t)(compensate_gain * csi));
     }
 #else
-    ets_printf(",%d,%d,\"[%d", info->len, info->first_word_invalid,
+    printf(",%d,%d,\"[%d", info->len, info->first_word_invalid,
                (int16_t)(compensate_gain * info->buf[0]));
+    
     for (int i = 1; i < info->len; i++)
-    {
-        ets_printf(",%d", (int16_t)(compensate_gain * info->buf[i]));
+    {   
+        
+        printf(",%d", (int16_t)(compensate_gain * info->buf[i]));
     }
 #endif
-    ets_printf("]\"\n");
+    printf("]\"\n");
+#endif
+
+
+#if CSI_TO_UART_ENABLED
+    uart_send_csi_binary(rx_id, info->buf, info->len, compensate_gain);
+#endif
     s_count++;
 }
+
+
+
+
+
+
+
 
 void temp_callback(void *ctx, wifi_csi_info_t *info)
 {
 
+    if (memcmp(info->mac, CONFIG_CSI_SEND_MAC, 6))
+    {
+        return;
+    }
     const wifi_pkt_rx_ctrl_t *rx_ctrl = &info->rx_ctrl;
     float compensate_gain = 1.0f;
     static uint8_t agc_gain = 0;
@@ -270,20 +372,28 @@ void temp_callback(void *ctx, wifi_csi_info_t *info)
     g_csi_package_count++;
 
 #if IS_PRINT_CSI_INFO
-    ets_printf("index:%d len:%d data:[", g_csi_package_count, info->len);
-
+    //ESP_LOGI(TAG, "compensate_gain %f, agc_gain %d, fft_gain %d", compensate_gain,agc_gain, fft_gain);
+    printf("index:%d len:%d compensate_gain:%f data:[", g_csi_package_count, info->len, compensate_gain);
+    
+    
     if (info->len > 0)
     {
 
-        ets_printf("%d", (int16_t)(compensate_gain * info->buf[0]));
+        printf("%d", (int16_t)(compensate_gain * info->buf[0]));
         // 剩下的元素前面加逗号
         for (int i = 1; i < info->len; i++)
-        {
-            ets_printf(",%d", (int16_t)(compensate_gain * info->buf[i]));
+        {   
+            
+            printf(",%d", (int16_t)(compensate_gain * info->buf[i]));
         }
     }
+    
+    
 
-    ets_printf("]\n");
+    printf("]\n");
+#endif
+#if CSI_TO_UART_ENABLED
+    uart_send_csi_binary(g_csi_package_count, info->buf, info->len, compensate_gain);
 #endif
 }
 
@@ -341,6 +451,7 @@ void app_main()
     /**
      * @brief Initialize NVS
      */
+    ESP_LOGI(TAG,"d");
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
     {
@@ -352,6 +463,10 @@ void app_main()
     /**
      * @brief Initialize Wi-Fi
      */
+#if CSI_TO_UART_ENABLED
+    uart_init();
+#endif
+    
     wifi_init();
 
     /**
@@ -368,6 +483,6 @@ void app_main()
     };
 
     wifi_esp_now_init(peer);
-
-    wifi_csi_init();
+    
+    wifi_csi_init();    
 }
