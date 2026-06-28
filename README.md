@@ -1,5 +1,4 @@
-![DaedalusLoom](https://socialify.git.ci/Theseus-Core/DaedalusLoom/image?custom_description=An+ESP32-based+Wi-Fi+CSI+sensing+framework+integrating+data+acquisition%2C+signal+preprocessing%2C+feature+extraction%2C+and+edge+AI+inference+for+gesture+recognition%2C+human+identification%2C+and+environmental+perception.&custom_language=C&description=1&font=KoHo&forks=1&issues=1&language=1&name=1&owner=1&pattern=Brick+Wall&pulls=1&stargazers=1&theme=Auto)
-
+![DaedalusLoom](https://socialify.git.ci/Theseus-Core/DaedalusLoom/image?custom_description=An+ESP32-based+Wi-Fi+CSI+sensing+framework+integrating+data+acquisition%2C+signal+preprocessing%2C+feature+extraction%2C+and+edge+AI+inference+for+gesture+recognition%2C+human+identification%2C+and+environmental+perception.&description=1&font=KoHo&forks=1&issues=1&logo=https%3A%2F%2Fraw.githubusercontent.com%2FTheseus-Core%2FDaedalusLoom%2Frefs%2Fheads%2Fmain%2Flogo.png&name=1&owner=1&pulls=1&stargazers=1&theme=Light)
 <div align="center">
 
 # DaedalusLoom  
